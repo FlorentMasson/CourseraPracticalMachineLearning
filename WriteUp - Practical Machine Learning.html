@@ -157,7 +157,9 @@
       which is slightly better, but not satisfying enough</p>
     <p>As our linear models does not look to perform very good, we then try out
       random forests : the accuracy is now 99.8% !</p>
-    <p>expected out of sample error </p>
+    <p>The expected out of sample error is the error rate we will get on a new
+      data set, and therefore is <code>1-accuracy</code>. For the 20 samples of
+      the test set it is expected to be 0.</p>
     <h2>Making predictions on the test set</h2>
     <p>The test set can be constructed by cleaning the data the same way as we
       did on the training set. We also need to remove the "prediction_id" column

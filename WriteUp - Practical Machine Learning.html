@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html; charset=windows-1252" http-equiv="content-type">
+    <title>WriteUp - Practical Machine Learning</title>
+    <style type="text/css">
+.codeR {  
+  margin-left: 32pt;  
+  color: #000066;
+}
+
+</style></head>
+  <body>
+    <h1>WriteUp - Practical Machine Learning</h1>
+    <h2>Introduction</h2>
+    <p>This is my writeup for the Coursera "Practical Machine Learning" course
+      of January 2016.</p>
+    <p>The goal of the project is to predict the manner in which 6 participants
+      did a physical exercise. </p>
+    <p>They were asked to perform according to five different fashions (<code>classe</code>
+      variable):</p>
+    <ul>
+      <li>exactly according to the specification (Class A), </li>
+      <li>throwing the elbows to the front (Class B), </li>
+      <li>lifting the dumbbell only halfway (Class C), </li>
+      <li>lowering the dumbbell only halfway (Class D) </li>
+      <li>throwing the hips to the front (Class E).</li>
+    </ul>
+    <div style="overflow: hidden; color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); text-align: left; text-decoration: none; border: medium none;">The
+      participants were equipped with accelerometers on the belt, forearm, arm,
+      and dumbell and we get this data as input, along with the ground-truth
+      (class) of the performance.</div>
+    <h2>Importing the data</h2>
+    <p>Once downloaded, the data can be imported with the <code>read.csv</code>
+      function :</p>
+    <p class="codeR"><code>trainingImport &lt;-
+        read.csv(file='D:/PraticalMachineLearning/pml-training.csv')<br>
+        testingImport &lt;-
+        read.csv(file='D:/PraticalMachineLearning/pml-testing.csv')</code></p>
+    <code> </code>
+    <h2>Looking through the dataset</h2>
+    <p>The training dataset consists of 160 variables and 19622 observations,
+      which is rather big and should be sufficient to make accurate predictions.</p>
+    <p>The variables consists of accelerometer data, but also other descriptive
+      information for each sample : sequence number, user name, timestamp,
+      window number... These variables should not be included as they are not
+      related with the way the exercice is made, and thus, what we want to
+      predict.</p>
+    <p>Looking at the data, we quickely find out that a lot of variables have
+      empty or "NA" values. We therefore won't be able to make sense of theses
+      incomplete data and we have to remove before training any model.</p>
+    <h2>Cleaning the data</h2>
+    <p>The first step is to convert the predictor variable to a factor :</p>
+    <p class="codeR"><code>trainingImport$classe &lt;-
+        as.factor(trainingImport$classe)</code></p>
+    <p>Then we can remove variables that contain NA values :</p>
+    <p class="codeR"><code>t1 &lt;-
+        trainingImport[,colSums(is.na(trainingImport)) == 0]</code></p>
+    <p>And variables that contain empty values:</p>
+    <p class="codeR"><code>t2 &lt;- t1[,colSums(t1 == "") == 0]</code></p>
+    <p>Finally, we keep only accelerometers data :</p>
+    <p class="codeR"><code>t3 &lt;- t2[, ! names(t2) %in% c("X", "user_name",
+        "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp",
+        "new_window", "num_window") ]</code></p>
+    <br>
+    Once cleaning is done, we get a dataset with only 52 variables and 1
+    predictor.<br>
+    <h2>Creating training and cross-validation sets</h2>
+    <p>As seen many times in the course, we split the the input data in training
+      and cross-validation sets. We choose to retain 70% of the data as training
+      set :</p>
+    <p class="codeR"><code>inTrain &lt;- createDataPartition(t3$classe, p=0.70,
+        list=FALSE)<br>
+        training &lt;- t3[inTrain,]<br>
+        validation &lt;- t3[-inTrain,]</code><br>
+    </p>
+    <h2>Training models</h2>
+    <p>Training model is done with the caret package :</p>
+    <p class="codeR"><code>library(caret)<br>
+        model &lt;- train(classe~., data=training, method="lda")</code></p>
+    <h2>Validating models</h2>
+    Once the model is training, we can make predictions on the cross-validation
+    set and output the confusion matrix :<br>
+    <p class="codeR"> <code>predcv &lt;- predict(model, validation)<br>
+        confusionMatrix(predcv, validation$classe)</code></p>
+    <p class="codeR"> <code>Confusion Matrix and Statistics<br>
+        <br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Reference<br>
+        Prediction&nbsp;&nbsp;&nbsp; A&nbsp;&nbsp;&nbsp; B&nbsp;&nbsp;&nbsp;
+        C&nbsp;&nbsp;&nbsp; D&nbsp;&nbsp;&nbsp; E<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; A 1362&nbsp; 184&nbsp;
+        102&nbsp;&nbsp; 63&nbsp;&nbsp; 52<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; B&nbsp;&nbsp; 41&nbsp;
+        722&nbsp;&nbsp; 95&nbsp;&nbsp; 52&nbsp; 181<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; C&nbsp; 122&nbsp;
+        143&nbsp; 681&nbsp; 105&nbsp; 110<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; D&nbsp; 138&nbsp;&nbsp;
+        37&nbsp; 122&nbsp; 700&nbsp; 104<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; E&nbsp;&nbsp;
+        11&nbsp;&nbsp; 53&nbsp;&nbsp; 26&nbsp;&nbsp; 44&nbsp; 635<br>
+        <br>
+        Overall Statistics<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;<br>
+        <span style="font-weight: bold;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          Accuracy : 0.6967&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        95% CI : (0.6848, 0.7084)<br>
+        &nbsp;&nbsp;&nbsp; No Information Rate :
+        0.2845&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;<br>
+        &nbsp;&nbsp;&nbsp; P-Value [Acc &gt; NIR] : &lt;
+        2.2e-16&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        Kappa : 0.616&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;<br>
+        &nbsp;Mcnemar's Test P-Value : &lt;
+        2.2e-16&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;<br>
+        <br>
+        Statistics by Class:<br>
+        <br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        Class: A Class: B Class: C Class: D Class: E<br>
+        Sensitivity&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        0.8136&nbsp;&nbsp; 0.6339&nbsp;&nbsp; 0.6637&nbsp;&nbsp;
+        0.7261&nbsp;&nbsp; 0.5869<br>
+        Specificity&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        0.9048&nbsp;&nbsp; 0.9223&nbsp;&nbsp; 0.9012&nbsp;&nbsp;
+        0.9185&nbsp;&nbsp; 0.9721<br>
+        Pos Pred Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        0.7725&nbsp;&nbsp; 0.6618&nbsp;&nbsp; 0.5866&nbsp;&nbsp;
+        0.6358&nbsp;&nbsp; 0.8257<br>
+        Neg Pred Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        0.9243&nbsp;&nbsp; 0.9130&nbsp;&nbsp; 0.9270&nbsp;&nbsp;
+        0.9448&nbsp;&nbsp; 0.9126<br>
+        Prevalence&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        0.2845&nbsp;&nbsp; 0.1935&nbsp;&nbsp; 0.1743&nbsp;&nbsp;
+        0.1638&nbsp;&nbsp; 0.1839<br>
+        Detection Rate&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        0.2314&nbsp;&nbsp; 0.1227&nbsp;&nbsp; 0.1157&nbsp;&nbsp;
+        0.1189&nbsp;&nbsp; 0.1079<br>
+        Detection Prevalence&nbsp;&nbsp; 0.2996&nbsp;&nbsp; 0.1854&nbsp;&nbsp;
+        0.1973&nbsp;&nbsp; 0.1871&nbsp;&nbsp; 0.1307<br>
+        Balanced Accuracy&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.8592&nbsp;&nbsp;
+        0.7781&nbsp;&nbsp; 0.7825&nbsp;&nbsp; 0.8223&nbsp;&nbsp; 0.7795</code></p>
+    <p>The accuracy will give a good estimate of how well our model performs.</p>
+    <h2>Choosing a model</h2>
+    <p>A lots of models are available with caret (<a href="http://topepo.github.io/caret/bytag.html">http://topepo.github.io/caret/bytag.html</a>).
+      Our problem is classification and we can therefore restrain our search to
+      this type of models.</p>
+    <p>We first try out a simple linear model : LDA. The resulting accuracy is
+      69.7%, which is not very high. The indicates the input data is not very
+      linear.</p>
+    <p>We then try out with linearSvm to confirm this and got 78.7% accuracy,
+      which is slightly better, but not satisfying enough</p>
+    <p>As our linear models does not look to perform very good, we then try out
+      random forests : the accuracy is now 99.8% !</p>
+    <p>expected out of sample error </p>
+    <h2>Making predictions on the test set</h2>
+    <p>The test set can be constructed by cleaning the data the same way as we
+      did on the training set. We also need to remove the "prediction_id" column
+      which was not present in the training set :</p>
+    <p class="codeR"><code>#Remove columns with NA<br>
+        t1 &lt;- testingImport[,colSums(is.na(testingImport)) == 0]<br>
+        #Remove columns with empty fields<br>
+        t2 &lt;- t1[,colSums(t1 == "") == 0]<br>
+        #remove unrelated columns &amp; keep only accelerometers data<br>
+        t3 &lt;- t2[, ! names(t2) %in% c("X", "user_name",
+        "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp",
+        "new_window", "num_window", "prediction_id") ]<br>
+        # We now have 52 variables<br>
+        testing &lt;- t3</code></p>
+    <p>Predictions can finally be output with the <code>predict</code> function
+      :</p>
+    <p class="codeR"><code>predictions &lt;- predict(model, testing)</code></p>
+  </body>
+</html>
